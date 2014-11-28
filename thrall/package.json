@@ -6,6 +6,7 @@
   "dependencies": {
     "express": "latest",
     "faye-websocket": "latest",
-    "forever": "latest"
+    "forever": "latest",
+    "log4js": "latest"
   }
 }
