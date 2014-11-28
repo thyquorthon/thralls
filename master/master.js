@@ -21,7 +21,7 @@ var app = express();
 
 app.use(morgan('dev'));
 app.use(bodyParser.json());
-//app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded());
 app.startTime = moment();
 
 app.get('/status', function(req, res) {
@@ -42,9 +42,10 @@ app.get('/servers/:id', function(req, res) {
   res.send(temp);
 });
 
-app.post('/servers/:id', function(req, res) {
-  slaves[req.params.id].socket.send(req.body);
-  res.send();
+app.post('/servers/:id/messages', function(req, res) {
+  msg = {'type':'message', 'message': req.body.message}
+  slaves[req.params.id].socket.send(JSON.stringify(msg));
+  res.send()
 });
 
 app.post('/', function(req, res) {
@@ -71,7 +72,7 @@ server.on('upgrade', function(request, socket, body) {
     // new client connects to the server
     ws.on('open', function(event) {
       logger.info('New slave connected');
-      ws.send('{"message": "Kneel before me slave!."}');
+      ws.send('{"type": "message", "message": "Kneel before me slave!."}');
     });    
 
     // received a message from the client

@@ -1,7 +1,7 @@
 var os = require('os');
 var WebSocket = require('faye-websocket');
 var http = require('http');
-
+var protocol = require('./protocol');
 
 // CONNECT FUNCTION
 function connect(){
@@ -11,7 +11,9 @@ function connect(){
 	ws = new WebSocket.Client('ws://' + config.MASTER, null, options);
 	// Slave protocol.
 	ws.on('message', function(event) {
-	  logger.info('--> ' + event.data.message);
+	  //logger.info('--> ' + event.data);
+	  data = JSON.parse(event.data);
+	  actions.methods[data.type](data);
 	  // send a receipt back to the server
 	  //ws.send('Got the message on port ' + port + '. Thanks!!');
 	});
@@ -31,6 +33,8 @@ var log4js = require('log4js');
 log4js.configure('./config/log4js_config.json', { reloadSecs: 300 });
 var logger = log4js.getLogger('thrall');
 logger.setLevel(config.logLevel);
+// Actions 
+actions = new protocol(logger);
 
 logger.info('CONFIGURATION FILE LOADED');
 // Connect to master.
