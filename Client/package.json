@@ -1,0 +1,11 @@
+{
+  "name": "remoteDeploy_client",
+  "author": "Jorge Arevalo",
+  "description": "Client for remote script deploy/launch",
+  "version": "0.0.0",
+  "dependencies": {
+    "express": "latest",
+    "faye-websocket": "latest",
+    "forever": "latest"
+  }
+}
