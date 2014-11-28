@@ -48,6 +48,12 @@ app.post('/servers/:id/messages', function(req, res) {
   res.send()
 });
 
+app.post('/servers/:id/jobs', function(req, res) {
+  msg = {'type':'job', 'script': req.body.script}
+  slaves[req.params.id].socket.send(JSON.stringify(msg));
+  res.send()
+});
+
 app.post('/', function(req, res) {
   // send the message to all slaves
   for(var slave in slaves) {
