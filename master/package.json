@@ -11,6 +11,7 @@
     "jade": "latest",
     "forever": "latest",
     "moment": "latest",
-    "log4js": "latest"
+    "log4js": "latest",
+    "tingodb": "latest"
   }
 }

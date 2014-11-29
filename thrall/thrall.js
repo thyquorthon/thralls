@@ -13,9 +13,17 @@ function connect(){
 	ws.on('message', function(event) {
 	  //logger.info('--> ' + event.data);
 	  data = JSON.parse(event.data);
-	  actions.methods[data.type](data);
-	  // send a receipt back to the server
-	  //ws.send('Got the message on port ' + port + '. Thanks!!');
+	  msg = {'id': data.id, 'type': data.type, 'status': 'received'};
+	  ws.send(JSON.stringify(msg));
+	  outcome = actions.methods[data.type](data);
+	  if (outcome.send) {
+	  	msg.result = outcome.result;
+	  	if (outcome.error) msg.status = 'error'; else msg.status = 'done';
+	  	// send a receipt back to the server
+	  	ws.send(JSON.stringify(msg));
+	  }
+	  
+	  
 	});
 	// lost socket handling.
 	ws.on('close', function(event) {
