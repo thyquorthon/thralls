@@ -1,5 +1,4 @@
 var vm = require('vm');
-
 // class methods
 message = function(payload) {
 	_self.logger.info('--> ' + payload.message);
@@ -9,10 +8,9 @@ message = function(payload) {
 job = function(payload) {
 	_self.logger.info('<-- JOB received');
 	var script = vm.createScript(payload.script);
-	var result = null;
 	_self.logger.info('-*- executing JOB');
 	try {
-		script.runInThisContext();	
+		result = script.runInThisContext();	
 	} catch(error) {
 		_self.logger.info('-!- JOB failed');
 		return {'error': true, 'send': true, 'result': error + ' '};

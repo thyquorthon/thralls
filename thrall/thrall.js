@@ -2,7 +2,7 @@ var os = require('os');
 var WebSocket = require('faye-websocket');
 var http = require('http');
 var protocol = require('./protocol');
-
+var result = null;
 // CONNECT FUNCTION
 function connect(){
 	options = {'headers': {
