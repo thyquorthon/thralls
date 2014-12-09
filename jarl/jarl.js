@@ -6,6 +6,7 @@ var bodyParser = require('body-parser');
 var WebSocket = require('faye-websocket');
 var moment = require('moment');
 var DBEngine = require('tingodb')();
+var fs = require('fs');
 
 // Load configuration file.
 var config = require('./config/config.json');
@@ -15,6 +16,13 @@ log4js.configure('./config/log4js_config.json', { reloadSecs: 300 });
 var logger = log4js.getLogger('thrall');
 logger.setLevel(config.logLevel);
 
+
+// SETUP DB FOLDER
+
+var dir = './db';
+if (!fs.existsSync(dir)){
+    fs.mkdirSync(dir);
+}
 // DB 
 var db = new DBEngine.Db(config.dbStore, {});
 
