@@ -1,5 +1,7 @@
 {
  "logLevel": "DEBUG",
+ "MASTER": "PC00901490:8000",
+ "protocol": "ws",
  "PORT": 8001,
- "MASTER": "localhost:8000"
+ "secret": "0q53b9#53bydhp(t^+5x=*c3$4sc&$v&x@8ehk16%sb7*g*&+9"
 }

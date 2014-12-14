@@ -1,3 +1,7 @@
+// ******************************************************************************
+// Requires
+// ******************************************************************************
+var os = require('os');
 var express = require('express');
 var http = require('http');
 var path = require('path');
@@ -7,27 +11,35 @@ var WebSocket = require('faye-websocket');
 var moment = require('moment');
 var DBEngine = require('tingodb')();
 var fs = require('fs');
+var Crypt = require('./libs/crypt');
 
-// Load configuration file.
+// ******************************************************************************
+// CONFIG
+// ******************************************************************************
 var config = require('./config/config.json');
-// Logger
+
+// ******************************************************************************
+// LOGGER
+// ******************************************************************************
 var log4js = require('log4js');
 log4js.configure('./config/log4js_config.json', { reloadSecs: 300 });
 var logger = log4js.getLogger('thrall');
 logger.setLevel(config.logLevel);
 
-
-// SETUP DB FOLDER
-
-var dir = './db';
-if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir);
-}
-// DB 
+// ******************************************************************************
+// DATABASE
+// ******************************************************************************
+if (!fs.existsSync(config.dbStore)) fs.mkdirSync(config.dbStore);
 var db = new DBEngine.Db(config.dbStore, {});
 
-var slaves = {};
+// ******************************************************************************
+// LIBS
+// ******************************************************************************
+cipher = new Crypt(logger, config.secret);
 
+// ******************************************************************************
+// REST API ROUTES
+// ******************************************************************************
 var port = config.PORT || 8000;
 var app = express();
 app.use(morgan('dev'));
@@ -35,7 +47,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 app.startTime = moment();
 
-// REST API ROUTES
 app.get('/status', function(req, res) {
   res.send({'status':'ok', 'uptime': app.startTime.fromNow() });
 });
@@ -68,7 +79,11 @@ app.post('/servers/:id/jobs', function(req, res) {
     else {
       // Create a JOB on the DB.
       jobId = new DBEngine.ObjectID();
-      newJob = {'id': jobId, 'type':'job', 'script': req.body.script, 'status': 'sent'};
+      /*newJob = {'id': jobId, 'type':'job', 'status': 'sent'};
+      if (req.body.script) newJob.script = req.body.script;
+      if (req.body.cmd) newJob.cmd = req.body.cmd;*/
+      newJob = req.body;
+      newJob.jobId = jobId; newJob.type = "job"; newJob.status = "sent";
       jobs.insert(newJob, function(err, job){
         if (err) { res.send(500, {'error': 'Failed to insert job in table.'});}
         else {
@@ -127,20 +142,35 @@ app.use(function(err, req, res, next) {
     });
 });
 
+// ******************************************************************************
 // SOCKET PROTOCOL
+// ******************************************************************************
+var slaves = {};
+
 server.on('upgrade', function(request, socket, body) {
   if (WebSocket.isWebSocket(request)) {
     serverName = request.headers.servername;
+    // GET / CREATE TOKEN
+    connected = true;
+    passphrase = cipher.decrypt(request.headers.csrftoken);
+
+    // **
+    if (passphrase.substring(0, 5)!="token"){
+      logger.error("Failed to decrypt passphrase from : " + serverName);
+      connected = false;
+    }
+    
     var ws = new WebSocket(request, socket, body);
     // store the socket so we can contact it when a message comes in
     slaves[serverName] = { 'server' : {'serverName': serverName,
                                        'connectionStart': moment()},
-                           'socket': ws}
+                           'socket': ws,
+                           'passphrase': passphrase};
 
     // new client connects to the server
     ws.on('open', function(event) {
-      logger.info('New slave connected ' + serverName);
-      ws.send('{"type": "message", "message": "Kneel before me slave!."}');
+      if (connected) ws.send('{"type": "ack", "message": "' + cipher.encrypt("ACK") + '"}'); 
+      else ws.send('{"type": "close", "message": "Invalid Call"}'); 
     });    
 
     // received a message from the client
@@ -162,6 +192,10 @@ server.on('upgrade', function(request, socket, body) {
   }
 });
 
+
+// ******************************************************************************
+// FUNCTIONS
+// ******************************************************************************
 updateJob = function(jobUpdate) {
     var jobs = db.collection('jobs', function(err, jobs){
     if (err) { logger.error('Failed to open jobs table.');}
@@ -173,13 +207,15 @@ updateJob = function(jobUpdate) {
           job.status = jobUpdate.status;
           job.result = jobUpdate.result;
           jobs.update({id:job.id}, job, {safe:true}, function(err, count){
-            if (err) logger.error('Failed to update '+ job.id); else logger.info('Updated status "' + job.status + '" on job ' + job.id);
+            if (err) logger.error('Failed to update '+ job.id); else logger.info('Updated status "' + job.status + '" on job ' + job.id + ' -- ' + job.result);
           });
         }
       });
     }
   });
-
 }
 
+
+// ******************************************************************************
+// ******************************************************************************
 module.exports = app;
